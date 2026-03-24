@@ -1,0 +1,201 @@
+package http
+
+import (
+	"bytes"
+	"encoding/json"
+	"encoding/xml"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+type HttpRequest struct {
+	url     string
+	headers map[string]string
+	Method  string
+	body    []byte
+}
+
+type HttpResponse struct {
+	StatusCode int
+	Body       []byte
+	Headers    map[string]string
+}
+
+type UnmarshalerFunc func(data []byte, v any) error
+
+// Get creates a new HttpRequest with the GET method and the specified URL.
+// Example usage:
+//
+//	err := http.Get("http://httpbin.org/get").
+//		Headers(map[string]string{"Custom-Header": "value"}).
+//		JSON(&dest)
+func Get(url string) *HttpRequest {
+	return newHttpRequest(http.MethodGet, url)
+}
+
+// Post creates a new HttpRequest with the POST method and the specified URL.
+// Example usage:
+//
+//	err := http.Post("http://httpbin.org/post").
+//		Headers(map[string]string{"Custom-Header": "value"}).
+//		BodyJSON(map[string]string{"key": "value"}).
+//		JSON(&dest)
+func Post(url string) *HttpRequest {
+	return newHttpRequest(http.MethodPost, url)
+}
+
+// Put creates a new HttpRequest with the PUT method and the specified URL.
+// Example usage:
+//
+//	err := http.Put("http://httpbin.org/put").
+//		Headers(map[string]string{"Custom-Header": "value"}).
+//		BodyJSON(map[string]string{"key": "value"}).
+//		JSON(&dest)
+func Put(url string) *HttpRequest {
+	return newHttpRequest(http.MethodPut, url)
+}
+
+// Patch creates a new HttpRequest with the PATCH method and the specified URL.
+// Example usage:
+//
+//	err := http.Patch("http://httpbin.org/patch").
+//		Headers(map[string]string{"Custom-Header": "value"}).
+//		BodyJSON(map[string]string{"key": "value"}).
+//		JSON(&dest)
+func Patch(url string) *HttpRequest {
+	return newHttpRequest(http.MethodPatch, url)
+}
+
+// Delete creates a new HttpRequest with the DELETE method and the specified URL.
+// Example usage:
+//
+//	err := http.Delete("http://httpbin.org/delete").
+//		Headers(map[string]string{"Custom-Header": "value"}).Do()
+func Delete(url string) *HttpRequest {
+	return newHttpRequest(http.MethodDelete, url)
+}
+
+func newHttpRequest(method, url string) *HttpRequest {
+	return &HttpRequest{url: url, Method: method, headers: make(map[string]string)}
+}
+
+// Headers sets the headers for the HttpRequest and returns the modified HttpRequest.
+func (req *HttpRequest) Headers(headers map[string]string) *HttpRequest {
+	for k, v := range headers {
+		req.headers[k] = v
+	}
+
+	return req
+}
+
+// BodyJSON sets the body of the HttpRequest to the JSON representation of the provided src and returns the modified HttpRequest.
+func (req *HttpRequest) BodyJSON(src any) *HttpRequest {
+	body, err := json.Marshal(src)
+	if err != nil {
+		panic(err)
+	}
+
+	return req.jsonContentType().setBody(body)
+}
+
+// BodyXML sets the body of the HttpRequest to the XML representation of the provided src and returns the modified HttpRequest.
+func (req *HttpRequest) BodyXML(src any) *HttpRequest {
+	body, err := xml.Marshal(src)
+	if err != nil {
+		panic(err)
+	}
+
+	return req.xmlContentType().setBody(body)
+}
+
+// Body sets the body of the HttpRequest to the provided byte slice and returns the modified HttpRequest.
+func (req *HttpRequest) Body(body []byte) *HttpRequest {
+	return req.setBody(body)
+}
+
+func (req *HttpRequest) setBody(body []byte) *HttpRequest {
+	req.body = body
+	return req
+}
+
+func (req *HttpRequest) jsonContentType() *HttpRequest {
+	req.headers["Content-Type"] = "application/json"
+	req.headers["Accept"] = "application/json"
+
+	return req
+}
+
+// JSON executes the HttpRequest and unmarshals the response body into the provided dest using JSON unmarshaling.
+// It returns an error if the request fails or if the response status code is not 200 OK or 201 Created.
+func (req *HttpRequest) JSON(dest any) error {
+	return req.jsonContentType().doAndUnmarshal(json.Unmarshal, dest)
+}
+
+func (req *HttpRequest) xmlContentType() *HttpRequest {
+	req.headers["Content-Type"] = "application/xml"
+	req.headers["Accept"] = "application/xml"
+	return req
+}
+
+// XML executes the HttpRequest and unmarshals the response body into the provided dest using XML unmarshaling.
+// It returns an error if the request fails or if the response status code is not 200 OK or 201 Created.
+func (req *HttpRequest) XML(dest any) error {
+	return req.xmlContentType().doAndUnmarshal(xml.Unmarshal, dest)
+}
+
+// Do executes the HttpRequest and returns an HttpResponse containing the status code, body, and headers of the response.
+// It returns an error if the request fails.
+func (req *HttpRequest) Do() (*HttpResponse, error) {
+	return req.do()
+}
+
+func (req *HttpRequest) do() (*HttpResponse, error) {
+	request, err := http.NewRequest(req.Method, req.url, bytes.NewBuffer(req.body))
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range req.headers {
+		request.Header.Set(k, v)
+	}
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	defer response.Body.Close()
+
+	b, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return &HttpResponse{
+		StatusCode: response.StatusCode,
+		Body:       b,
+		Headers:    req.headers,
+	}, nil
+}
+
+func (req *HttpRequest) doAndUnmarshal(unmarshalerFunc UnmarshalerFunc, dest any) error {
+	res, err := req.do()
+	if err != nil {
+		return err
+	}
+
+	if !(res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated) {
+		return fmt.Errorf("err status code: %d", res.StatusCode)
+	}
+
+	if res.Body != nil && len(res.Body) > 0 {
+		err = unmarshalerFunc(res.Body, dest)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
