@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/renandotcorrea/go-scripts/http"
-	try "github.com/renandotcorrea/go-scripts/try"
+	"github.com/renandotcorrea/goscript/http"
+	try "github.com/renandotcorrea/goscript/try"
 )
 
 func main() {

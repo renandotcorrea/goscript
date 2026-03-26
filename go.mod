@@ -1,3 +1,3 @@
-module github.com/renandotcorrea/go-scripts
+module github.com/renandotcorrea/goscript
 
 go 1.25.4
