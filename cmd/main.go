@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/renandotcorrea/goscript/http"
-	try "github.com/renandotcorrea/goscript/try"
+	"github.com/renandotcorrea/goscript/slice"
+	"github.com/renandotcorrea/goscript/try"
 )
 
 func main() {
@@ -19,4 +21,14 @@ func main() {
 
 	res := try.Try1(http.Post("http://httpbin.org/post").BodyJSON(data).Do())
 	println("Status:", res.StatusCode)
+
+	sl := slice.Slice[int]{1, 2, 3, 4, 5}
+
+	mapped := sl.Map(func(x int) int {
+		return x * 2
+	}).Filter(func(x int) bool {
+		return x%2 == 0
+	}).First()
+
+	fmt.Println(*mapped) // Output: 2
 }
