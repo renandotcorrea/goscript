@@ -1,8 +1,10 @@
 package slice
 
-import "slices"
+import (
+	"reflect"
+)
 
-type Slice[T comparable] []T
+type Slice[T any] []T
 
 // Contains checks if the slice contains the specified value.
 // Example usage:
@@ -11,7 +13,13 @@ type Slice[T comparable] []T
 //	fmt.Println(slice.Contains(3)) // Output: true
 //	fmt.Println(slice.Contains(6)) // Output: false
 func (s Slice[T]) Contains(value T) bool {
-	return slices.Contains(s, value)
+	for _, v := range s {
+		if reflect.DeepEqual(v, value) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Filter returns a new slice containing only the elements that satisfy the provided predicate function.
@@ -140,8 +148,23 @@ func (s Slice[T]) Unique() Slice[T] {
 	return unique(s)
 }
 
-func unique[T comparable](s []T) []T {
-	return slices.Compact(s)
+func unique[T any](s []T) []T {
+	result := make([]T, 0, len(s))
+	for _, v := range s {
+		exists := false
+		for _, current := range result {
+			if reflect.DeepEqual(current, v) {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			result = append(result, v)
+		}
+	}
+
+	return result
 }
 
 // Len returns the length of the slice.
@@ -157,6 +180,36 @@ func (s Slice[T]) Cap() int {
 // Append appends the specified values to the slice and returns the resulting slice.
 func (s Slice[T]) Append(values ...T) Slice[T] {
 	return append(s, values...)
+}
+
+// Chunk splits the current slice into chunks of the provided size.
+// If n is less than or equal to zero, it returns an empty []Slice[T].
+func (s Slice[T]) Chunk(n int) []Slice[T] {
+	if n <= 0 {
+		return []Slice[T]{}
+	}
+
+	result := make([]Slice[T], 0, (s.Len()+n-1)/n)
+	for i := 0; i < s.Len(); i += n {
+		end := i + n
+		if end > s.Len() {
+			end = s.Len()
+		}
+
+		result = append(result, Slice[T](s[i:end]))
+	}
+
+	return result
+}
+
+// FlatMap maps each input item to a slice and flattens all results in order.
+func FlatMap[T any, U any](s []T, fn func(T) []U) Slice[U] {
+	result := make(Slice[U], 0)
+	for _, v := range s {
+		result = append(result, fn(v)...)
+	}
+
+	return result
 }
 
 // ToMap converts a slice of values into a map using the provided key selector function.

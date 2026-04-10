@@ -172,3 +172,45 @@ func TestToMap(t *testing.T) {
 		t.Fatalf("unexpected user for key 2: got %v", got[2])
 	}
 }
+
+func TestSliceChunk(t *testing.T) {
+	s := Slice[int]{1, 2, 3, 4, 5}
+	got := s.Chunk(2)
+
+	if len(got) != 3 {
+		t.Fatalf("unexpected chunk count: got %d, want 3", len(got))
+	}
+
+	if !slices.Equal(got[0], Slice[int]{1, 2}) {
+		t.Fatalf("unexpected first chunk: got %v", got[0])
+	}
+
+	if !slices.Equal(got[1], Slice[int]{3, 4}) {
+		t.Fatalf("unexpected second chunk: got %v", got[1])
+	}
+
+	if !slices.Equal(got[2], Slice[int]{5}) {
+		t.Fatalf("unexpected third chunk: got %v", got[2])
+	}
+}
+
+func TestSliceChunk_InvalidSize(t *testing.T) {
+	s := Slice[int]{1, 2, 3}
+	got := s.Chunk(0)
+
+	if len(got) != 0 {
+		t.Fatalf("expected empty result for invalid chunk size, got %v", got)
+	}
+}
+
+func TestFlatMap(t *testing.T) {
+	s := Slice[int]{1, 2, 3}
+	got := FlatMap(s, func(v int) []string {
+		return []string{string(rune('a' + v - 1)), string(rune('A' + v - 1))}
+	})
+
+	want := Slice[string]{"a", "A", "b", "B", "c", "C"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("unexpected flat map result: got %v, want %v", got, want)
+	}
+}

@@ -7,7 +7,9 @@ import (
 	"io"
 	nethttp "net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type testPayload struct {
@@ -125,6 +127,90 @@ func TestBody(t *testing.T) {
 	req := Post("http://example.com").Body(raw)
 	if string(req.body) != "raw body" {
 		t.Fatalf("unexpected body: got %s", req.body)
+	}
+}
+
+func TestQueryParams(t *testing.T) {
+	server := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		if r.URL.Query().Get("page") != "2" || r.URL.Query().Get("size") != "50" {
+			w.WriteHeader(nethttp.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(nethttp.StatusOK)
+	}))
+	defer server.Close()
+
+	resp, err := Get(server.URL).
+		QueryParams(map[string]string{"page": "2", "size": "50"}).
+		Do()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if resp.StatusCode != nethttp.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestRetry_RetriesOn429(t *testing.T) {
+	var attempts int32
+	server := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		current := atomic.AddInt32(&attempts, 1)
+		if current < 3 {
+			w.WriteHeader(nethttp.StatusTooManyRequests)
+			return
+		}
+
+		w.WriteHeader(nethttp.StatusOK)
+		fmt.Fprint(w, `{"message":"ok"}`)
+	}))
+	defer server.Close()
+
+	var dest testPayload
+	err := Get(server.URL).Retry(2, 0).JSON(&dest)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if attempts != 3 {
+		t.Fatalf("expected 3 attempts, got %d", attempts)
+	}
+
+	if dest.Message != "ok" {
+		t.Fatalf("unexpected message: got %s, want ok", dest.Message)
+	}
+}
+
+func TestRetry_DoesNotRetryOn400(t *testing.T) {
+	var attempts int32
+	server := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		atomic.AddInt32(&attempts, 1)
+		w.WriteHeader(nethttp.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	var dest testPayload
+	err := Get(server.URL).Retry(3, 0).JSON(&dest)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if attempts != 1 {
+		t.Fatalf("expected 1 attempt for non-retryable status, got %d", attempts)
+	}
+}
+
+func TestTimeout(t *testing.T) {
+	server := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		time.Sleep(50 * time.Millisecond)
+		w.WriteHeader(nethttp.StatusOK)
+	}))
+	defer server.Close()
+
+	_, err := Get(server.URL).Timeout(10 * time.Millisecond).Do()
+	if err == nil {
+		t.Fatal("expected timeout error, got nil")
 	}
 }
 

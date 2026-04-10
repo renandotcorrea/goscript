@@ -4,16 +4,24 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
+	"time"
 )
 
 type HttpRequest struct {
 	url     string
 	headers map[string]string
+	query   map[string]string
 	Method  string
 	body    []byte
+	retries int
+	backoff time.Duration
+	timeout time.Duration
 }
 
 type HttpResponse struct {
@@ -77,7 +85,7 @@ func Delete(url string) *HttpRequest {
 }
 
 func newHttpRequest(method, url string) *HttpRequest {
-	return &HttpRequest{url: url, Method: method, headers: make(map[string]string)}
+	return &HttpRequest{url: url, Method: method, headers: make(map[string]string), query: make(map[string]string)}
 }
 
 // Headers sets the headers for the HttpRequest and returns the modified HttpRequest.
@@ -86,6 +94,33 @@ func (req *HttpRequest) Headers(headers map[string]string) *HttpRequest {
 		req.headers[k] = v
 	}
 
+	return req
+}
+
+// QueryParams adds query string parameters to the request URL and returns the modified HttpRequest.
+func (req *HttpRequest) QueryParams(params map[string]string) *HttpRequest {
+	for k, v := range params {
+		req.query[k] = v
+	}
+
+	return req
+}
+
+// Retry configures the request to retry transient responses (429 and 5xx) and transient network errors.
+func (req *HttpRequest) Retry(n int, backoff time.Duration) *HttpRequest {
+	if n < 0 {
+		n = 0
+	}
+
+	req.retries = n
+	req.backoff = backoff
+
+	return req
+}
+
+// Timeout sets a per-request timeout.
+func (req *HttpRequest) Timeout(d time.Duration) *HttpRequest {
+	req.timeout = d
 	return req
 }
 
@@ -151,7 +186,34 @@ func (req *HttpRequest) Do() (*HttpResponse, error) {
 }
 
 func (req *HttpRequest) do() (*HttpResponse, error) {
-	request, err := http.NewRequest(req.Method, req.url, bytes.NewBuffer(req.body))
+	requestURL, err := req.requestURL()
+	if err != nil {
+		return nil, err
+	}
+
+	attempts := req.retries + 1
+	for attempt := 0; attempt < attempts; attempt++ {
+		response, doErr := req.doAttempt(requestURL)
+		if doErr != nil {
+			if attempt == attempts-1 || !isRetryableError(doErr) {
+				return nil, doErr
+			}
+		} else {
+			if !isRetryableStatus(response.StatusCode) || attempt == attempts-1 {
+				return response, nil
+			}
+		}
+
+		if req.backoff > 0 {
+			time.Sleep(req.backoff)
+		}
+	}
+
+	return nil, fmt.Errorf("unexpected request execution flow")
+}
+
+func (req *HttpRequest) doAttempt(requestURL string) (*HttpResponse, error) {
+	request, err := http.NewRequest(req.Method, requestURL, bytes.NewBuffer(req.body))
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +223,10 @@ func (req *HttpRequest) do() (*HttpResponse, error) {
 	}
 
 	client := &http.Client{}
+	if req.timeout > 0 {
+		client.Timeout = req.timeout
+	}
+
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, err
@@ -178,6 +244,42 @@ func (req *HttpRequest) do() (*HttpResponse, error) {
 		Body:       b,
 		Headers:    req.headers,
 	}, nil
+}
+
+func (req *HttpRequest) requestURL() (string, error) {
+	if len(req.query) == 0 {
+		return req.url, nil
+	}
+
+	parsed, err := url.Parse(req.url)
+	if err != nil {
+		return "", err
+	}
+
+	values := parsed.Query()
+	for k, v := range req.query {
+		values.Set(k, v)
+	}
+
+	parsed.RawQuery = values.Encode()
+	return parsed.String(), nil
+}
+
+func isRetryableStatus(statusCode int) bool {
+	if statusCode == http.StatusTooManyRequests {
+		return true
+	}
+
+	return statusCode >= http.StatusInternalServerError && statusCode <= http.StatusNetworkAuthenticationRequired
+}
+
+func isRetryableError(err error) bool {
+	var netErr net.Error
+	if !errors.As(err, &netErr) {
+		return false
+	}
+
+	return netErr.Timeout()
 }
 
 func (req *HttpRequest) doAndUnmarshal(unmarshalerFunc UnmarshalerFunc, dest any) error {
