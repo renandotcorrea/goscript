@@ -1,0 +1,83 @@
+package file
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+type fileTestPayload struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+}
+
+func TestReadJson(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "payload.json")
+	if err := os.WriteFile(path, []byte(`{"name":"alpha","count":2}`), 0o644); err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	var got fileTestPayload
+	if err := ReadJson(path, &got); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if got.Name != "alpha" || got.Count != 2 {
+		t.Fatalf("unexpected payload: %+v", got)
+	}
+}
+
+func TestReadJson_FileNotFound(t *testing.T) {
+	var got fileTestPayload
+	if err := ReadJson("missing.json", &got); err == nil {
+		t.Fatal("expected error for missing file")
+	}
+}
+
+func TestReadJson_InvalidJSON(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "broken.json")
+	if err := os.WriteFile(path, []byte(`{"name":`), 0o644); err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	var got fileTestPayload
+	if err := ReadJson(path, &got); err == nil {
+		t.Fatal("expected unmarshal error")
+	}
+}
+
+func TestWriteJson(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "out.json")
+	input := fileTestPayload{Name: "beta", Count: 7}
+
+	if err := WriteJson(path, input); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var got fileTestPayload
+	if err := ReadJson(path, &got); err != nil {
+		t.Fatalf("unexpected read error: %v", err)
+	}
+
+	if got != input {
+		t.Fatalf("unexpected roundtrip payload: got %+v, want %+v", got, input)
+	}
+}
+
+func TestWriteJson_MarshalError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "out.json")
+	if err := WriteJson(path, make(chan int)); err == nil {
+		t.Fatal("expected marshal error")
+	}
+}
+
+func TestWriteJson_WriteError(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "missing", "out.json")
+	if err := WriteJson(path, fileTestPayload{Name: "x"}); err == nil {
+		t.Fatal("expected write error")
+	}
+}
