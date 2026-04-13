@@ -3,6 +3,7 @@ package env
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -96,4 +97,44 @@ func GetDurationOr(key string, def time.Duration) time.Duration {
 	}
 
 	return time.Duration(durationValue)
+}
+
+// LoadFile reads environment variables from file and sets them in the current process.
+// If no file path is provided, it uses ".env" by default.
+// Lines that are empty, comments, or malformed (without '=') are ignored.
+func LoadFile(filePath ...string) error {
+	path := ".env"
+	if len(filePath) > 0 && strings.TrimSpace(filePath[0]) != "" {
+		path = filePath[0]
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read env file %q: %w", path, err)
+	}
+
+	lines := strings.Split(string(content), "\n")
+	for _, rawLine := range lines {
+		line := strings.TrimSpace(rawLine)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		idx := strings.IndexRune(line, '=')
+		if idx < 0 {
+			continue
+		}
+
+		key := strings.TrimSpace(line[:idx])
+		if key == "" {
+			continue
+		}
+
+		value := strings.TrimSpace(line[idx+1:])
+		if err := os.Setenv(key, value); err != nil {
+			return fmt.Errorf("set env %q from %q: %w", key, path, err)
+		}
+	}
+
+	return nil
 }
