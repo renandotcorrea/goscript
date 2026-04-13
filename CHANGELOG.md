@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.0] - 2026-04-13
+
+### Added
+- New `file` package with JSON helpers:
+	- `ReadJson(filePath string, dest any) error`
+	- `WriteJson(filePath string, src any) error`
+- Unit tests for the new `file` package.
+
+### Changed
+- `env` package now includes `LoadFile(filePath ...string) error` to load env vars from a file (`.env` by default).
+- Extended test coverage for `env` package (`LoadFile` scenarios).
+
 ## [0.0.2] - 2026-04-10
 
 ### Added
@@ -53,3 +65,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Module renamed to `github.com/renandotcorrea/goscript`.
 
 [0.0.2]: https://github.com/renandotcorrea/goscript/releases/tag/0.0.2
+[0.1.0]: https://github.com/renandotcorrea/goscript/releases/tag/v0.1.0
