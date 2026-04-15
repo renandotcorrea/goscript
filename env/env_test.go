@@ -1,6 +1,7 @@
 package env
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -151,4 +152,37 @@ func TestLoadFile_IgnoresMalformedLines(t *testing.T) {
 	if got := os.Getenv("ANOTHER"); got != "ok" {
 		t.Fatalf("unexpected ANOTHER: got %q", got)
 	}
+}
+
+func ExampleGetIntOr() {
+	// Example demonstrates parsing an integer environment variable with a fallback default
+	os.Setenv("PORT", "8080")
+	port := GetIntOr("PORT", 3000)
+	fmt.Println("port:", port)
+
+	// Non-existent or invalid variable returns default
+	timeout := GetIntOr("TIMEOUT_MISSING", 30)
+	fmt.Println("timeout:", timeout)
+	// Output:
+	// port: 8080
+	// timeout: 30
+}
+
+func ExampleLoadFile() {
+	// Example demonstrates loading environment variables from a file
+	dir := os.TempDir()
+	path := filepath.Join(dir, "example.env")
+	content := []byte("API_KEY=secret123\nDEBUG=true\n# This is a comment\n")
+	os.WriteFile(path, content, 0o644)
+	defer os.Remove(path)
+
+	err := LoadFile(path)
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
+
+	key := os.Getenv("API_KEY")
+	fmt.Println("API_KEY:", key)
+	// Output: API_KEY: secret123
 }

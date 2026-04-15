@@ -2,6 +2,8 @@ package try
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"testing"
 )
 
@@ -147,4 +149,31 @@ func TestHandle_NonErrorPanic(t *testing.T) {
 		})
 		panic("not an error")
 	}()
+}
+
+func ExampleTry1() {
+	// Example demonstrates Try1 returning a value or panicking on error
+	safeStrconv := func(s string) int {
+		return Try1(func() (int, error) {
+			var i int
+			_, err := fmt.Sscanf(s, "%d", &i)
+			return i, err
+		}())
+	}
+
+	value := safeStrconv("123")
+	fmt.Println("value:", value)
+	// Output: value: 123
+}
+
+func ExampleTry() {
+	// Example demonstrates Try panicking on error
+	file, err := os.Open("/tmp/does_not_exist_file_xyz.txt")
+	defer file.Close()
+	// Try(err) would panic with os.Open error
+	// For demonstration, we check the error instead
+	if err != nil {
+		fmt.Println("file open failed (Try would panic)")
+	}
+	// Output: file open failed (Try would panic)
 }

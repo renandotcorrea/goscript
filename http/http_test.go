@@ -418,3 +418,28 @@ func TestDo_MethodSentCorrectly(t *testing.T) {
 		})
 	}
 }
+
+func ExampleGet() {
+	// Example demonstrates a fluent chainable request with query params and headers
+	server := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		if r.URL.Query().Get("page") == "1" && r.Header.Get("Authorization") == "Bearer token" {
+			w.WriteHeader(nethttp.StatusOK)
+			fmt.Fprint(w, `{"data":"success"}`)
+			return
+		}
+		w.WriteHeader(nethttp.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	var result map[string]string
+	err := Get(server.URL).
+		QueryParams(map[string]string{"page": "1"}).
+		Headers(map[string]string{"Authorization": "Bearer token"}).
+		JSON(&result)
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
+	fmt.Println(result["data"])
+	// Output: success
+}

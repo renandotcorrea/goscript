@@ -1,3 +1,4 @@
+// Package env provides utilities for reading and loading environment variables.
 package env
 
 import (
@@ -33,6 +34,8 @@ func getOr(key, def string) string {
 	return value
 }
 
+// GetIntOr returns the int value of the environment variable for key.
+// If the variable is not set, empty, or cannot be parsed as an int, it returns def.
 func GetIntOr(key string, def int) int {
 	value := getOr(key, "")
 
@@ -49,6 +52,8 @@ func GetIntOr(key string, def int) int {
 	return intValue
 }
 
+// GetBoolOr returns the bool value of the environment variable for key.
+// If the variable is not set, empty, or cannot be parsed as a bool, it returns def.
 func GetBoolOr(key string, def bool) bool {
 	value := getOr(key, "")
 
@@ -83,6 +88,8 @@ func GetFloatOr(key string, def float64) float64 {
 	return floatValue
 }
 
+// GetDurationOr returns the duration value of the environment variable for key.
+// If the variable is not set, empty, or cannot be parsed as a duration, it returns def.
 func GetDurationOr(key string, def time.Duration) time.Duration {
 	value := getOr(key, "")
 

@@ -1,3 +1,4 @@
+// Package http provides a fluent HTTP request builder with chainable methods.
 package http
 
 import (
@@ -13,6 +14,9 @@ import (
 	"time"
 )
 
+// HttpRequest represents an HTTP request being built with a fluent chainable API.
+// Use the fluent methods (Headers, BodyJSON, QueryParams, etc.) to configure the request,
+// and call Do or JSON to execute it.
 type HttpRequest struct {
 	url     string
 	headers map[string]string
@@ -25,6 +29,8 @@ type HttpRequest struct {
 	client  *http.Client
 }
 
+// HttpResponse represents the response from an HTTP request.
+// StatusCode is the HTTP status code, Body is the response body, and Headers are the response headers.
 type HttpResponse struct {
 	StatusCode int
 	Body       []byte
