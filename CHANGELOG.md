@@ -5,7 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unrelesead]
+## [v0.1.2] - 2026-04-15
+
+### Added
+- Complete godoc coverage for all packages with package-level comments.
+- Canonical examples as `ExampleXxx()` test functions for:
+  - `http.Get()` — fluent request chain with QueryParams and Headers
+  - `env.GetIntOr()` — integer environment variable parsing with fallback
+  - `env.LoadFile()` — loading environment variables from file
+  - `file.ReadJson()` and `file.WriteJson()` — JSON file roundtrip
+  - `try.Try1()` and `try.Try()` — panic-on-error patterns
+- Documentation for previously undocumented functions:
+  - `env.GetIntOr()`, `env.GetBoolOr()`, `env.GetDurationOr()`
+  - `slice.IsEmpty()`, `slice.ForEach()`
+- Type documentation for `HttpRequest`, `HttpResponse`, and `Slice[T]`.
+
+### Changed
+- `AGENTS.md` simplified and aligned with actual package structure and documentation practices.
 
 ## [v0.1.1] - 2026-04-13
 
@@ -74,3 +90,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [0.0.2]: https://github.com/renandotcorrea/goscript/releases/tag/0.0.2
 [0.1.0]: https://github.com/renandotcorrea/goscript/releases/tag/v0.1.0
+[0.1.1]: https://github.com/renandotcorrea/goscript/releases/tag/v0.1.1
+[0.1.2]: https://github.com/renandotcorrea/goscript/releases/tag/v0.1.2
