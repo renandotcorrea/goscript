@@ -22,6 +22,7 @@ type HttpRequest struct {
 	retries int
 	backoff time.Duration
 	timeout time.Duration
+	client  *http.Client
 }
 
 type HttpResponse struct {
@@ -85,7 +86,13 @@ func Delete(url string) *HttpRequest {
 }
 
 func newHttpRequest(method, url string) *HttpRequest {
-	return &HttpRequest{url: url, Method: method, headers: make(map[string]string), query: make(map[string]string)}
+	return &HttpRequest{
+		url:     url,
+		Method:  method,
+		headers: make(map[string]string),
+		query:   make(map[string]string),
+		client:  &http.Client{},
+	}
 }
 
 // Headers sets the headers for the HttpRequest and returns the modified HttpRequest.
@@ -121,6 +128,12 @@ func (req *HttpRequest) Retry(n int, backoff time.Duration) *HttpRequest {
 // Timeout sets a per-request timeout.
 func (req *HttpRequest) Timeout(d time.Duration) *HttpRequest {
 	req.timeout = d
+	return req
+}
+
+// Client sets a custom http.Client for the request. If not set, a default http.Client will be used.
+func (req *HttpRequest) Client(client *http.Client) *HttpRequest {
+	req.client = client
 	return req
 }
 
@@ -222,12 +235,11 @@ func (req *HttpRequest) doAttempt(requestURL string) (*HttpResponse, error) {
 		request.Header.Set(k, v)
 	}
 
-	client := &http.Client{}
 	if req.timeout > 0 {
-		client.Timeout = req.timeout
+		req.client.Timeout = req.timeout
 	}
 
-	response, err := client.Do(request)
+	response, err := req.client.Do(request)
 	if err != nil {
 		return nil, err
 	}
