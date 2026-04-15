@@ -1,166 +1,107 @@
 # AGENTS.md
 
-Guide for AI coding agents working on the goscript project — a collection of pure Go utility packages.
+Guide for AI coding agents working on the goscript project — a collection of pure Go utility packages for scripting.
 
 ## Project Overview
 
-**goscript** is a utility library providing generic, reusable Go packages for common scripting patterns:
-- `slice` - Generic slice utilities with functional methods (Filter, Map, Reduce, etc.)
-- `http` - Fluent HTTP client builder with chainable API
-- `try` - Error handling utilities
+**goscript** provides:
+- `slice` - Generic `Slice[T]` with functional operations (Filter, Map, Reduce, FlatMap, Chunk)
+- `http` - Fluent HTTP request builder with chainable API (QueryParams, Retry, Timeout)
+- `try` - Error handling utilities (Try, Try1, Try2, etc.)
+- `env` - Environment variable helpers (MustGet, GetOr with type conversion, LoadFile)
+- `file` - JSON read/write utilities (ReadJson, WriteJson)
 
 Target audience: Go developers building scripts and small tools.
 
-## Package Structure
-
-```
-go-scripts/
-├── slice/          # Generic Slice[T] type with functional operations
-│   ├── slice.go
-│   └── slice_test.go
-├── http/           # Fluent HTTP request builder
-│   ├── http.go
-│   └── http_test.go
-├── try/            # Error handling utilities
-│   ├── try.go
-│   └── try_test.go
-├── cmd/main.go     # Example usage (optional)
-└── go.mod          # Module definition
-```
+**Documentation:** All packages include godoc comments and canonicalized examples on [pkg.go.dev](https://pkg.go.dev/github.com/renandotcorrea/goscript).
 
 ## Setup & Development
 
 ### Prerequisites
 - Go 1.25.4 or later
+- No external dependencies (standard library only)
 
-### Initialize
-- Clone or navigate to the repository
-- No external dependencies needed (standard library only)
-
-### Build & Run
-- `go build ./cmd/main.go` - Build example
-- `go run ./cmd/main.go` - Run example
-
-## Testing Instructions
-
-### Run All Tests
+### Quick Start
 ```bash
-go test ./...
+go test ./...        # Run all tests
+go fmt ./...         # Format code
+go vet ./...         # Lint checks
 ```
 
-### Run Tests for Specific Package
-```bash
-go test ./slice
-go test ./http
-go test ./try
-```
+## Code Standards
 
-### Run with Coverage
-```bash
-go test -v -cover ./...
-```
+### Style
+- Follow Go conventions: `gofmt`, `CamelCase` exports, `camelCase` unexported
+- One-letter receiver names for small types: `func (s Slice[T])`
+- Comments for all exported functions and types (checked by godoc)
 
-### Run Specific Test
-```bash
-go test ./slice -run TestSliceFilter
-```
+### Documentation
+- Package-level comments exist for all packages (first line summarizes purpose)
+- Exported functions have doc comments (first sentence is summary)
+- Canonical examples exist as `ExampleXxx()` test functions in `*_test.go`
+- See existing code in any package for patterns
 
-**Important:** All tests must pass before committing. The agent should fix any failing tests.
+### Generics
+- Use `[T]` for single type parameter, `[K, V]` for key-value
+- Avoid complex constraints; prefer `any`
+- Composite literal method calls need parentheses: `(Slice[int]{}).IsEmpty()`
 
-## Code Style & Conventions
+### Method Semantics
+- Slice methods use value receivers (see slice.go)
+- HTTP builder methods use pointer receivers for chaining (see http.go)
+- All methods return new data; originals unchanged (immutable-spirit)
 
-### Go Style
-- Follow standard Go conventions (gofmt)
-- Use `CamelCase` for exported types and functions
-- Use `camelCase` for unexported fields and functions
-- One-letter receiver names for small types (e.g., `func (s Slice[T])`)
-
-### Generics & Type Parameters
-- Use `[T]` for single type parameter (element type)
-- Use `[K, V]` for key-value type parameters
-- Keep type constraints simple; use `any` when no constraint needed
-
-### Method Receivers
-- Slice methods that modify: use value receiver (methods operate on copy)
-- Slice methods that read: use value receiver
-- Fluent builders (e.g., HttpRequest): use pointer receiver
-
-### Comments & Documentation
-- Document exported types and functions with comments
-- Use example comments for complex methods (see http.go for reference)
-- Keep comments concise and focused
-
-### Composite Literal Method Calls
-- When calling methods on composite literals, wrap in parentheses:
-  ```go
-  result := (Slice[int]{1, 2, 3}).Filter(predicate)
-  ```
-  This is a Go syntax requirement for method calls on types.
-
-## Common Implementation Patterns
-
-### Slice Functional Operations
-- `Filter(predicate)` - Returns new slice, doesn't modify original
-- `Map(fn)` - Returns new slice with transformed elements
-- `Reduce(fn, initial)` - Accumulates to single value
-- `ForEach(fn)` - Executes function for side effects only
-
-### HTTP Request Building
-- `http.Get(url)` returns `*HttpRequest`
-- Chain methods: `.Headers()`, `.BodyJSON()`, etc.
-- Terminal method: `.JSON(dest)` or `.Raw()` executes request
-- Type assertions in tests: check `response.StatusCode` and unmarshal `Body`
-
-### Error Handling
-- Return errors explicitly; no panic unless truly exceptional
-- Provide context in error messages
-- Test error paths in unit tests
-
-## Testing Guidelines
-
-- Write tests alongside implementation (e.g., `slice_test.go` next to `slice.go`)
-- Use table-driven tests for multiple cases
-- Name test functions: `TestFunctionName` or `TestFunctionNameScenario`
-- Test both happy path and edge cases (empty slices, nil values, etc.)
-- Mock HTTP responses in http tests (use httptest package if needed)
-
-## Commits & Pull Requests
-
-### Commit Message Format
-- Clear, descriptive message summarizing the change
-- Reference the package affected: e.g., "slice: add Contains method"
-- Keep messages under 72 characters for subject line
+## Testing & Commit Workflow
 
 ### Before Pushing
-1. Run `go fmt ./...` to format code
-2. Run `go test ./...` to ensure all tests pass
-3. Run `go vet ./...` to check for common mistakes
-4. Verify no unused imports or variables
+```bash
+go test ./...        # All tests pass
+gofmt -w ./...       # Format code
+go vet ./...         # Check for mistakes
+```
 
-### PR Guidelines
-- One feature or bug fix per PR
-- Update tests if behavior changes
-- Add documentation for new exported functions
-- Ensure all tests pass in CI
+### Commit Messages
+- Clear, descriptive; reference package: e.g., "slice: add Chunk method"
+- Keep subject line under 72 characters
 
-## Common Gotchas
+## Common Patterns
 
-### Generics Syntax
-- Method calls on composite literals require parentheses: `(Slice[int]{}).IsEmpty()`
-- Type parameters must be explicit in some contexts
+**Adding a New Function:**
+1. Write function in package `*.go` file
+2. Add doc comment: `// FuncName does X.`
+3. Add unit tests in `*_test.go` with edge cases
+4. Add `ExampleFuncName()` test function if behavior is non-obvious
+5. Run tests, format, commit
 
-### Slice Semantics
-- Slice methods that "modify" return a new slice; originals are immutable in spirit
-- Be careful with slices of pointers vs slices of values
+**HTTP Fluent Chains:**
+```go
+Get(url).
+  QueryParams(map[string]string{"page": "1"}).
+  Headers(map[string]string{"Auth": "token"}).
+  Retry(3, time.Second).
+  Timeout(10*time.Second).
+  JSON(&result)
+```
 
-### HTTP Testing
-- Remember to close response bodies in real code (the fluent API handles this)
-- Status codes aren't errors; check `response.StatusCode` explicitly
+**Slice Functional Patterns:**
+```go
+s := Slice[int]{1, 2, 3, 4, 5}
+evens := s.Filter(func(x int) bool { return x%2 == 0 }).
+  Map(func(x int) int { return x * 2 })
+```
 
-## Agent Tips
+## Gotchas
 
-- **Exploration:** Start by reading the README.md for project goals, then package files
-- **Testing first:** Always run tests after making changes
-- **Consistency:** Match existing code style in the target file
-- **Documentation:** New exported functions need comment documentation
-- **Refactoring:** If moving code between files, verify imports still work (`go mod tidy`)
+- **Composite literals:** `(Slice[int]{}).IsEmpty()` requires parentheses—Go syntax rule
+- **HTTP status codes:** Not errors; check `response.StatusCode` explicitly
+- **Slice receivers:** Modifications return new slices; originals unchanged (immutable-spirit semantics)
+- **File operations:** LoadFile and JSON read/write return errors; never panic for I/O
+
+## Quick Reference
+
+| Task | Command |
+|------|---------|
+| Run tests | `go test ./...` |
+| Format | `gofmt -w ./...` |
+| Check syntax | `go vet ./...` |
+| Read docs | Open [pkg.go.dev](https://pkg.go.dev/github.com/renandotcorrea/goscript) or `godoc -h localhost:6060` |
