@@ -1,3 +1,4 @@
+// Package file provides utilities for reading and writing JSON files.
 package file
 
 import (
@@ -6,7 +7,7 @@ import (
 	"os"
 )
 
-// ReadJson opens a JSON file and unmarshals its content into dest.
+// ReadJson opens a JSON file and unmarshals its content into the dest parameter.
 func ReadJson(filePath string, dest any) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {

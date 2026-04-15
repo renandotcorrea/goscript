@@ -1,9 +1,12 @@
+// Package slice provides a generic Slice[T] type with functional programming utilities.
+// It supports operations like Filter, Map, Reduce, and other sequence transformations.
 package slice
 
 import (
 	"reflect"
 )
 
+// Slice is a generic slice type that wraps a Go slice and provides functional methods.
 type Slice[T any] []T
 
 // Contains checks if the slice contains the specified value.
@@ -74,6 +77,7 @@ func (s Slice[T]) Last() *T {
 	return &s[s.Len()-1]
 }
 
+// IsEmpty returns true if the slice is empty, false otherwise.
 func (s Slice[T]) IsEmpty() bool {
 	return s.Len() == 0
 }
@@ -94,6 +98,7 @@ func (s Slice[T]) Map(transform func(T) T) Slice[T] {
 	return result
 }
 
+// ForEach executes the provided action function for each element in the slice.
 func (s Slice[T]) ForEach(action func(T)) {
 	for _, v := range s {
 		action(v)

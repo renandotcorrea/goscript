@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -80,4 +81,39 @@ func TestWriteJson_WriteError(t *testing.T) {
 	if err := WriteJson(path, fileTestPayload{Name: "x"}); err == nil {
 		t.Fatal("expected write error")
 	}
+}
+
+func ExampleReadJson() {
+	// Example demonstrates reading and unmarshaling a JSON file
+	dir := os.TempDir()
+	path := filepath.Join(dir, "example.json")
+	payload := fileTestPayload{Name: "goscript", Count: 5}
+	WriteJson(path, payload)
+	defer os.Remove(path)
+
+	var result fileTestPayload
+	err := ReadJson(path, &result)
+	if err != nil {
+		return
+	}
+	fmt.Printf("%s: %d\n", result.Name, result.Count)
+	// Output: goscript: 5
+}
+
+func ExampleWriteJson() {
+	// Example demonstrates marshaling and writing a JSON file
+	dir := os.TempDir()
+	path := filepath.Join(dir, "output.json")
+	defer os.Remove(path)
+
+	payload := fileTestPayload{Name: "example", Count: 42}
+	err := WriteJson(path, payload)
+	if err != nil {
+		return
+	}
+
+	var result fileTestPayload
+	ReadJson(path, &result)
+	fmt.Printf("Written: %s\n", result.Name)
+	// Output: Written: example
 }

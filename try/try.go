@@ -1,3 +1,5 @@
+// Package try provides error handling utilities that panic on errors.
+// These are useful for scripts and command-line tools where error handling can be simplified.
 package try
 
 // Try panics if the provided error is not nil.
