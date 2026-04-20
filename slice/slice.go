@@ -77,7 +77,7 @@ func (s Slice[T]) Last() *T {
 	return &s[s.Len()-1]
 }
 
-// IsEmpty returns true if the slice is empty, false otherwise.
+// IsEmpty reports whether the slice contains no elements.
 func (s Slice[T]) IsEmpty() bool {
 	return s.Len() == 0
 }
@@ -98,7 +98,7 @@ func (s Slice[T]) Map(transform func(T) T) Slice[T] {
 	return result
 }
 
-// ForEach executes the provided action function for each element in the slice.
+// ForEach calls the provided function for each element in the slice.
 func (s Slice[T]) ForEach(action func(T)) {
 	for _, v := range s {
 		action(v)
@@ -172,23 +172,30 @@ func unique[T any](s []T) []T {
 	return result
 }
 
-// Len returns the length of the slice.
+// Len returns the number of elements in the slice.
 func (s Slice[T]) Len() int {
 	return len(s)
 }
 
 // Cap returns the capacity of the slice.
+// The capacity is the maximum number of elements the slice can hold without allocation.
 func (s Slice[T]) Cap() int {
 	return cap(s)
 }
 
-// Append appends the specified values to the slice and returns the resulting slice.
+// Append appends the specified values to the slice and returns a new slice containing all elements.
 func (s Slice[T]) Append(values ...T) Slice[T] {
 	return append(s, values...)
 }
 
-// Chunk splits the current slice into chunks of the provided size.
-// If n is less than or equal to zero, it returns an empty []Slice[T].
+// Chunk splits the slice into chunks of size n.
+// If n is less than or equal to zero, it returns an empty slice.
+//
+// Example usage:
+//
+//	slice := Slice[int]{1, 2, 3, 4, 5}
+//	chunks := slice.Chunk(2)
+//	fmt.Println(chunks) // Output: [[1 2] [3 4] [5]]
 func (s Slice[T]) Chunk(n int) []Slice[T] {
 	if n <= 0 {
 		return []Slice[T]{}
@@ -207,7 +214,15 @@ func (s Slice[T]) Chunk(n int) []Slice[T] {
 	return result
 }
 
-// FlatMap maps each input item to a slice and flattens all results in order.
+// FlatMap maps each element in the slice using fn and flattens the resulting slices into a single slice.
+//
+// Example usage:
+//
+//	slice := Slice[int]{1, 2, 3}
+//	duplicates := FlatMap(slice, func(x int) []int {
+//		return []int{x, x}
+//	})
+//	fmt.Println(duplicates) // Output: [1 1 2 2 3 3]
 func FlatMap[T any, U any](s []T, fn func(T) []U) Slice[U] {
 	result := make(Slice[U], 0)
 	for _, v := range s {

@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// MustGet returns the environment variable value for key.
-// It panics when the variable is not set or is set to an empty string.
+// MustGet returns the value of the environment variable named by the key.
+// It panics if the variable is not set or is set to an empty string.
 func MustGet(key string) string {
 	value, ok := os.LookupEnv(key)
 	if !ok || value == "" {
@@ -19,8 +19,8 @@ func MustGet(key string) string {
 	return value
 }
 
-// GetOr returns the environment variable value for key.
-// If the variable is not set or is empty, it returns def.
+// GetOr returns the value of the environment variable named by the key.
+// If the variable is not set or is empty, it returns the default value def.
 func GetOr(key, def string) string {
 	return getOr(key, def)
 }

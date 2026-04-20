@@ -37,6 +37,8 @@ type HttpResponse struct {
 	Headers    map[string]string
 }
 
+// UnmarshalerFunc is a function type that unmarshals data into a value.
+// It's used by JSON and XML methods to decode response bodies.
 type UnmarshalerFunc func(data []byte, v any) error
 
 // Get creates a new HttpRequest with the GET method and the specified URL.
