@@ -59,6 +59,94 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func TestClone_DeepCopiesHeadersAndQuery(t *testing.T) {
+	req := Get("http://example.com").
+		Headers(map[string]string{"X-Custom": "original"}).
+		QueryParams(map[string]string{"page": "1"})
+
+	clone := req.clone()
+
+	// Verify clone has same values
+	if clone.url != req.url {
+		t.Fatalf("clone url mismatch: got %s, want %s", clone.url, req.url)
+	}
+	if clone.Method != req.Method {
+		t.Fatalf("clone method mismatch: got %s, want %s", clone.Method, req.Method)
+	}
+	if clone.headers["X-Custom"] != "original" {
+		t.Fatalf("clone headers mismatch: got %s, want original", clone.headers["X-Custom"])
+	}
+	if clone.query["page"] != "1" {
+		t.Fatalf("clone query mismatch: got %s, want 1", clone.query["page"])
+	}
+}
+
+func TestClone_MutationsDoNotAffectOriginal(t *testing.T) {
+	req := Get("http://example.com").
+		Headers(map[string]string{"X-Original": "value1"}).
+		QueryParams(map[string]string{"id": "123"})
+
+	clone := req.clone()
+
+	// Mutate the clone
+	clone.headers["X-Original"] = "value2"
+	clone.headers["X-New"] = "new"
+	clone.query["id"] = "456"
+	clone.query["filter"] = "active"
+
+	// Verify original is unchanged
+	if req.headers["X-Original"] != "value1" {
+		t.Fatalf("original header was mutated: got %s, want value1", req.headers["X-Original"])
+	}
+	if req.headers["X-New"] != "" {
+		t.Fatalf("original has unexpected header X-New: %s", req.headers["X-New"])
+	}
+	if req.query["id"] != "123" {
+		t.Fatalf("original query was mutated: got %s, want 123", req.query["id"])
+	}
+	if req.query["filter"] != "" {
+		t.Fatalf("original has unexpected query filter: %s", req.query["filter"])
+	}
+
+	// Verify clone has mutations
+	if clone.headers["X-Original"] != "value2" {
+		t.Fatalf("clone mutation failed: got %s, want value2", clone.headers["X-Original"])
+	}
+	if clone.headers["X-New"] != "new" {
+		t.Fatalf("clone addition failed: got %s, want new", clone.headers["X-New"])
+	}
+	if clone.query["id"] != "456" {
+		t.Fatalf("clone query mutation failed: got %s, want 456", clone.query["id"])
+	}
+	if clone.query["filter"] != "active" {
+		t.Fatalf("clone query addition failed: got %s, want active", clone.query["filter"])
+	}
+}
+
+func TestClone_EmptyMapsAreCopied(t *testing.T) {
+	req := Get("http://example.com")
+
+	clone := req.clone()
+	clone.headers["X-Test"] = "value"
+	clone.query["test"] = "param"
+
+	// Verify original maps are still empty
+	if len(req.headers) > 0 {
+		t.Fatalf("original headers should be empty, got %d keys", len(req.headers))
+	}
+	if len(req.query) > 0 {
+		t.Fatalf("original query should be empty, got %d keys", len(req.query))
+	}
+
+	// Verify clone has the mutations
+	if clone.headers["X-Test"] != "value" {
+		t.Fatal("clone header not set")
+	}
+	if clone.query["test"] != "param" {
+		t.Fatal("clone query not set")
+	}
+}
+
 func TestHeaders(t *testing.T) {
 	req := Get("http://example.com").
 		Headers(map[string]string{"X-Foo": "bar", "X-Baz": "qux"})
