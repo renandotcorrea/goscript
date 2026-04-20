@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+- `.github/prompts/goscript.prompt.md` — Copilot prompt for generating Go scripts from natural-language descriptions using the goscript module. Fetches live package docs from pkg.go.dev at invocation time and enforces DRY/KISS/YAGNI script conventions.
+
+### Changed
+- `README.md` refactored for clarity and maintainability:
+  - Added Quick Start section with a full working example.
+  - Added packages summary table with links to pkg.go.dev.
+  - Replaced static method lists with concise code snippets and "Full API reference →" links to live documentation.
+  - Added usage instructions for the new Copilot prompt.
+  - Moved Installation to the top; simplified Testing section.
+- `AGENTS.md` updated with explicit checklists for maintaining `README.md` and `.github/prompts/goscript.prompt.md` when adding new functions or packages.
+- Improved doc comments across all packages to follow [Go doc comment best practices](https://go.dev/doc/comment):
+  - `http.UnmarshalerFunc` — added doc comment explaining function type usage
+  - `file.ReadJson()` and `file.WriteJson()` — added parameter descriptions and error documentation
+  - `slice` package methods — enhanced descriptions for `IsEmpty()`, `Len()`, `Cap()`, `Append()`, `ForEach()`, `Chunk()`, and `FlatMap()` with improved examples
+  - `env` package functions — refined language for `MustGet()` and `GetOr()` for improved clarity
+  - `try` package functions — standardized doc comments for consistent semantics; simplified examples for `Try()`, `Try1()`, `Try2()`, `Try3()`, `Try4()`, and `Handle()`
+- All doc comments now follow Go conventions: complete sentences, clear parameter descriptions, error conditions, and practical examples where helpful.
+
 ## [v0.1.2] - 2026-04-15
 
 ### Added
@@ -92,3 +113,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.0]: https://github.com/renandotcorrea/goscript/releases/tag/v0.1.0
 [0.1.1]: https://github.com/renandotcorrea/goscript/releases/tag/v0.1.1
 [0.1.2]: https://github.com/renandotcorrea/goscript/releases/tag/v0.1.2
+[v0.1.3]: https://github.com/renandotcorrea/goscript/releases/tag/v0.1.3
