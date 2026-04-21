@@ -99,8 +99,8 @@ func (m *RequestRepeater) WithOptions(options RequestRepeaterOptions) *RequestRe
 
 // BeforeEach allows setting a function that will be called before each request execution,
 // allowing modification of the HttpRequest before it is sent.
-func (m *RequestRepeater) BeforeEach(changerFunc func(*HttpRequest)) *RequestRepeater {
-	m.options.BeforeEach = changerFunc
+func (m *RequestRepeater) BeforeEach(beforeEachFunc func(*HttpRequest)) *RequestRepeater {
+	m.options.BeforeEach = beforeEachFunc
 	return m
 }
 
@@ -116,34 +116,11 @@ func (m *RequestRepeater) Do() ([]*HttpResponse, error) {
 }
 
 func (m *RequestRepeater) do() ([]*HttpResponse, error) {
-	var responses []*HttpResponse
-	for i := 0; i < m.times; i++ {
-		request := m.originalRequest.clone()
-		if m.options.BeforeEach != nil {
-			m.options.BeforeEach(request)
-		}
-
-		response, err := request.Do()
-		if err != nil {
-			return nil, err
-		}
-		responses = append(responses, response)
-
-		if i < m.times-1 {
-			if m.options.Backoff {
-				time.Sleep(m.options.Delay * time.Duration(m.options.BackoffFactor*float64(i+1)))
-			} else if m.options.Delay > 0 {
-				time.Sleep(m.options.Delay)
-			}
-		}
-	}
-
-	return responses, nil
+	responseChan, errorChan := m.doWithChannel()
+	return m.readChannelResponses(responseChan, errorChan)
 }
 
-func (m *RequestRepeater) doParallel() ([]*HttpResponse, error) {
-	responseChan, errorChan := m.doWithChannel()
-
+func (m *RequestRepeater) readChannelResponses(responseChan <-chan *HttpResponse, errorChan <-chan error) ([]*HttpResponse, error) {
 	var responses []*HttpResponse
 	for responseChan != nil || errorChan != nil {
 		select {
@@ -161,11 +138,50 @@ func (m *RequestRepeater) doParallel() ([]*HttpResponse, error) {
 			return nil, err
 		}
 	}
-
 	return responses, nil
 }
 
 func (m *RequestRepeater) doWithChannel() (<-chan *HttpResponse, <-chan error) {
+	responseChan := make(chan *HttpResponse)
+	errorChan := make(chan error, 1)
+
+	go func() {
+		defer close(responseChan)
+		defer close(errorChan)
+
+		for i := 0; i < m.times; i++ {
+			request := m.originalRequest.clone()
+			if m.options.BeforeEach != nil {
+				m.options.BeforeEach(request)
+			}
+
+			response, err := request.Do()
+			if err != nil {
+				errorChan <- err
+				return
+			}
+
+			responseChan <- response
+
+			if i < m.times-1 {
+				if m.options.Backoff {
+					time.Sleep(m.options.Delay * time.Duration(m.options.BackoffFactor*float64(i+1)))
+				} else if m.options.Delay > 0 {
+					time.Sleep(m.options.Delay)
+				}
+			}
+		}
+	}()
+
+	return responseChan, errorChan
+}
+
+func (m *RequestRepeater) doParallel() ([]*HttpResponse, error) {
+	responseChan, errorChan := m.doParallelWithChannel()
+	return m.readChannelResponses(responseChan, errorChan)
+}
+
+func (m *RequestRepeater) doParallelWithChannel() (<-chan *HttpResponse, <-chan error) {
 	responseChan := make(chan *HttpResponse, m.times)
 	errorChan := make(chan error, 1)
 	done := make(chan struct{})
@@ -225,5 +241,9 @@ func (m *RequestRepeater) doWithChannel() (<-chan *HttpResponse, <-chan error) {
 // returning two channels: one for successful responses and one for errors.
 // The caller may select on both channels. Both channels are closed when all requests complete.
 func (m *RequestRepeater) DoWithChannel() (<-chan *HttpResponse, <-chan error) {
+	if m.options.Parallel {
+		return m.doParallelWithChannel()
+	}
+
 	return m.doWithChannel()
 }
