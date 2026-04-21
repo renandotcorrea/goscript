@@ -103,6 +103,21 @@ func newHttpRequest(method, url string) *HttpRequest {
 	}
 }
 
+// clone returns a deep copy of the HttpRequest, duplicating the headers and query maps
+// so that mutations by one goroutine do not affect others.
+func (req *HttpRequest) clone() *HttpRequest {
+	c := *req
+	c.headers = make(map[string]string, len(req.headers))
+	for k, v := range req.headers {
+		c.headers[k] = v
+	}
+	c.query = make(map[string]string, len(req.query))
+	for k, v := range req.query {
+		c.query[k] = v
+	}
+	return &c
+}
+
 // Headers sets the headers for the HttpRequest and returns the modified HttpRequest.
 func (req *HttpRequest) Headers(headers map[string]string) *HttpRequest {
 	for k, v := range headers {
