@@ -3,3 +3,9 @@ test:
 
 fmt:
 	go fmt ./...
+
+vet:
+	go vet ./...
+
+vulncheck:
+	@govulncheck ./...

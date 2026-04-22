@@ -18,15 +18,18 @@ Target audience: Go developers building scripts and small tools.
 ## Setup & Development
 
 ### Prerequisites
-- Go 1.25.4 or later
+- Go 1.25.9 or later
 - No external dependencies (standard library only)
 
 ### Quick Start
 ```bash
-go test ./...        # Run all tests
-go fmt ./...         # Format code
-go vet ./...         # Lint checks
+make test        # Run all tests
+make fmt        # Format code
+make vet         # Lint checks
+make vulncheck # Check vulnerabilities
 ```
+
+- Run these commands after each implementation.
 
 ## Code Standards
 
@@ -34,12 +37,6 @@ go vet ./...         # Lint checks
 - Follow Go conventions: `gofmt`, `CamelCase` exports, `camelCase` unexported
 - One-letter receiver names for small types: `func (s Slice[T])`
 - Comments for all exported functions and types (checked by godoc)
-
-### Documentation
-- Package-level comments exist for all packages (first line summarizes purpose)
-- Exported functions have doc comments (first sentence is summary)
-- Canonical examples exist as `ExampleXxx()` test functions in `*_test.go`
-- See existing code in any package for patterns
 
 ### Documentation Guardrails (Required)
 - When adding a new package or exported symbol, follow [Go doc comment conventions](https://go.dev/doc/comment)
@@ -51,6 +48,7 @@ go vet ./...         # Lint checks
 - Use Go doc links when helpful, e.g., `[io.Reader]`, `[json.Unmarshal]`, `[Slice.IsEmpty]`
 - Prefer short, complete sentences and stable wording suitable for `go doc` and `pkg.go.dev`
 - Add `ExampleXxx()` tests for non-obvious behavior and keep examples runnable and realistic
+- Verify rendering with `go doc <module/package>` and sanity-check on pkgsite format
 
 **Doc comment templates:**
 
@@ -74,13 +72,6 @@ func Foo(...) (..., error)
 func IsReady(...) bool
 ```
 
-**Definition of done for docs (new package/function):**
-1. Package comment added/updated with purpose and scope
-2. All exported symbols documented with caller-focused behavior
-3. Error and edge-case behavior documented where relevant
-4. `ExampleXxx()` tests added/updated for key API usage
-5. Verify rendering with `go doc <module/package>` and sanity-check on pkgsite format
-
 ### Generics
 - Use `[T]` for single type parameter, `[K, V]` for key-value
 - Avoid complex constraints; prefer `any`
@@ -91,14 +82,7 @@ func IsReady(...) bool
 - HTTP builder methods use pointer receivers for chaining (see http.go)
 - All methods return new data; originals unchanged (immutable-spirit)
 
-## Testing & Commit Workflow
-
-### Before Pushing
-```bash
-go test ./...        # All tests pass
-gofmt -w ./...       # Format code
-go vet ./...         # Check for mistakes
-```
+## Commit Workflow
 
 ### Commit Messages
 - Clear, descriptive; reference package: e.g., "slice: add Chunk method"
@@ -107,18 +91,15 @@ go vet ./...         # Check for mistakes
 ## Common Patterns
 
 **Adding a New Function:**
-1. Write function in package `*.go` file
-2. Apply all rules in **Documentation Guardrails (Required)**
-3. Complete **Definition of done for docs (new package/function)**
-4. Add unit tests in `*_test.go` with edge cases
-5. Update `README.md` — add the function to the relevant package example block if it meaningfully changes how the package is used
-6. Run tests, format, commit
+1. Add unit tests in `*_test.go` with edge cases (TDD)
+2. Write function in package `*.go` file
+3. Apply all rules in **Documentation Guardrails (Required)**
+4. Update `README.md` — add the function to the relevant package example block if it meaningfully changes how the package is used
+5. Run tests, format, commit
 
 **Adding a New Package:**
-1. Create the package directory and implement the package
-2. Apply all rules in **Documentation Guardrails (Required)**
-3. Complete **Definition of done for docs (new package/function)**
-4. Add unit tests and `ExampleXxx()` functions
+1. Create the package directory
+2. Implement package functions following **Adding a New Function:** rules.
 5. Update `README.md`:
    - Add a row to the packages table (with link to pkg.go.dev)
    - Add a new `###` section with a usage example and "Full API reference →" link
@@ -146,16 +127,6 @@ evens := s.Filter(func(x int) bool { return x%2 == 0 }).
 
 ## Gotchas
 
-- **Composite literals:** `(Slice[int]{}).IsEmpty()` requires parentheses—Go syntax rule
 - **HTTP status codes:** Not errors; check `response.StatusCode` explicitly
 - **Slice receivers:** Modifications return new slices; originals unchanged (immutable-spirit semantics)
 - **File operations:** LoadFile and JSON read/write return errors; never panic for I/O
-
-## Quick Reference
-
-| Task | Command |
-|------|---------|
-| Run tests | `go test ./...` |
-| Format | `gofmt -w ./...` |
-| Check syntax | `go vet ./...` |
-| Read docs | Open [pkg.go.dev](https://pkg.go.dev/github.com/renandotcorrea/goscript) or `godoc -h localhost:6060` |
