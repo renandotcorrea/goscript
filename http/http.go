@@ -167,7 +167,7 @@ func (req *HttpRequest) BodyJSON(src any) *HttpRequest {
 		panic(err)
 	}
 
-	return req.jsonContentType().setBody(body)
+	return req.jsonBodyContentType().setBody(body)
 }
 
 // BodyXML sets the body of the HttpRequest to the XML representation of the provided src and returns the modified HttpRequest.
@@ -177,7 +177,7 @@ func (req *HttpRequest) BodyXML(src any) *HttpRequest {
 		panic(err)
 	}
 
-	return req.xmlContentType().setBody(body)
+	return req.xmlBodyContentType().setBody(body)
 }
 
 // Body sets the body of the HttpRequest to the provided byte slice and returns the modified HttpRequest.
@@ -190,7 +190,7 @@ func (req *HttpRequest) setBody(body []byte) *HttpRequest {
 	return req
 }
 
-func (req *HttpRequest) jsonContentType() *HttpRequest {
+func (req *HttpRequest) jsonBodyContentType() *HttpRequest {
 	req.headers["Content-Type"] = "application/json"
 	req.headers["Accept"] = "application/json"
 
@@ -200,10 +200,10 @@ func (req *HttpRequest) jsonContentType() *HttpRequest {
 // JSON executes the HttpRequest and unmarshals the response body into the provided dest using JSON unmarshaling.
 // It returns an error if the request fails or if the response status code is not 200 OK or 201 Created.
 func (req *HttpRequest) JSON(dest any) error {
-	return req.jsonContentType().doAndUnmarshal(json.Unmarshal, dest)
+	return req.doAndUnmarshal(json.Unmarshal, dest)
 }
 
-func (req *HttpRequest) xmlContentType() *HttpRequest {
+func (req *HttpRequest) xmlBodyContentType() *HttpRequest {
 	req.headers["Content-Type"] = "application/xml"
 	req.headers["Accept"] = "application/xml"
 	return req
@@ -212,7 +212,7 @@ func (req *HttpRequest) xmlContentType() *HttpRequest {
 // XML executes the HttpRequest and unmarshals the response body into the provided dest using XML unmarshaling.
 // It returns an error if the request fails or if the response status code is not 200 OK or 201 Created.
 func (req *HttpRequest) XML(dest any) error {
-	return req.xmlContentType().doAndUnmarshal(xml.Unmarshal, dest)
+	return req.doAndUnmarshal(xml.Unmarshal, dest)
 }
 
 // Do executes the HttpRequest and returns an HttpResponse containing the status code, body, and headers of the response.
