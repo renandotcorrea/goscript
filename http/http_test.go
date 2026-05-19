@@ -385,6 +385,36 @@ func TestJSON_Success(t *testing.T) {
 	}
 }
 
+func TestJSON_GetDoesNotSetContentType(t *testing.T) {
+	server := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		if got := r.Header.Get("Content-Type"); got != "" {
+			w.WriteHeader(nethttp.StatusBadRequest)
+			fmt.Fprintf(w, `{"message":"unexpected Content-Type: %s"}`, got)
+			return
+		}
+
+		if got := r.Header.Get("Accept"); got != "" {
+			w.WriteHeader(nethttp.StatusBadRequest)
+			fmt.Fprintf(w, `{"message":"unexpected Accept: %s"}`, got)
+			return
+		}
+
+		w.WriteHeader(nethttp.StatusOK)
+		fmt.Fprint(w, `{"message":"ok"}`)
+	}))
+	defer server.Close()
+
+	var dest testPayload
+	err := Get(server.URL).JSON(&dest)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if dest.Message != "ok" {
+		t.Fatalf("unexpected message: got %s, want ok", dest.Message)
+	}
+}
+
 func TestJSON_StatusCreated(t *testing.T) {
 	server := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
 		w.WriteHeader(nethttp.StatusCreated)
