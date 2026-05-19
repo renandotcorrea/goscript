@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v0.2.1] - 2026-05-19
+
+### Changed
+
+- `http.JSON()` and `http.XML()` no longer force `Accept` / `Content-Type` headers for decode-only requests, avoiding API responses that return empty payloads when those headers are present.
+- `http.BodyJSON()` and `http.BodyXML()` now set content negotiation headers only for requests that actually send a body.
+- Added regression coverage in `http/http_test.go` to ensure `Get(...).JSON(&dest)` does not automatically send `Content-Type` or `Accept` headers.
+
 ## [v0.2.0] - 2026-04-21
 
 ### Added
